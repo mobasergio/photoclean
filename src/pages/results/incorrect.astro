@@ -1,0 +1,333 @@
+---
+
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Incorrect Results - PhotoClean</title>
+	</head>
+	<body>
+		<div class="container">
+			<header>
+				<a href="/" class="back-link">← Back to Swiper</a>
+				<h1>Incorrect Images</h1>
+				<p class="subtitle">Images marked as incorrect</p>
+				<div class="nav-links">
+					<a href="/results/correct" class="nav-link"
+						>View Correct →</a
+					>
+				</div>
+			</header>
+
+			<div class="results-grid" id="results-grid">
+				<div class="loading">Loading...</div>
+			</div>
+
+			<div
+				class="empty-message"
+				id="empty-message"
+				style="display: none;"
+			>
+				<p>No incorrect images yet.</p>
+				<a href="/" class="btn-primary">Start Swiping</a>
+			</div>
+		</div>
+
+		<style>
+			* {
+				box-sizing: border-box;
+				margin: 0;
+				padding: 0;
+			}
+
+			html,
+			body {
+				overflow-x: hidden;
+				width: 100%;
+			}
+
+			body {
+				font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+					Roboto, Oxygen, Ubuntu, sans-serif;
+				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+				min-height: 100vh;
+				padding: 20px;
+			}
+
+			.container {
+				max-width: 1200px;
+				margin: 0 auto;
+			}
+
+			header {
+				text-align: center;
+				color: white;
+				margin-bottom: 30px;
+			}
+
+			.back-link {
+				color: white;
+				text-decoration: none;
+				opacity: 0.8;
+				font-size: 0.9rem;
+				display: inline-block;
+				margin-bottom: 15px;
+			}
+
+			.back-link:hover {
+				opacity: 1;
+			}
+
+			h1 {
+				font-size: 2rem;
+				font-weight: 700;
+				margin-bottom: 5px;
+			}
+
+			.subtitle {
+				font-size: 0.9rem;
+				opacity: 0.9;
+				margin-bottom: 15px;
+			}
+
+			.nav-links {
+				margin-top: 10px;
+			}
+
+			.nav-link {
+				color: white;
+				text-decoration: none;
+				padding: 8px 16px;
+				background: rgba(255, 255, 255, 0.2);
+				border-radius: 20px;
+				font-size: 0.85rem;
+			}
+
+			.nav-link:hover {
+				background: rgba(255, 255, 255, 0.3);
+			}
+
+			.results-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+				gap: 20px;
+			}
+
+			.result-card {
+				background: white;
+				border-radius: 12px;
+				overflow: hidden;
+				box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+			}
+
+			.result-image {
+				width: 100%;
+				height: 200px;
+				object-fit: cover;
+			}
+
+			.result-info {
+				padding: 15px;
+			}
+
+			.result-name {
+				font-weight: 600;
+				font-size: 1rem;
+				margin-bottom: 10px;
+				color: #333;
+			}
+
+			.result-actions {
+				display: flex;
+				gap: 8px;
+			}
+
+			.btn {
+				flex: 1;
+				padding: 8px 12px;
+				border: none;
+				border-radius: 6px;
+				font-size: 0.85rem;
+				cursor: pointer;
+				transition:
+					transform 0.2s ease,
+					opacity 0.2s ease;
+			}
+
+			.btn:hover {
+				transform: scale(1.02);
+			}
+
+			.btn:disabled {
+				opacity: 0.5;
+				cursor: not-allowed;
+				transform: none;
+			}
+
+			.btn-correct {
+				background: #51cf66;
+				color: white;
+			}
+
+			.btn-edit {
+				background: #339af0;
+				color: white;
+				position: relative;
+				overflow: hidden;
+			}
+
+			.btn-edit input[type="file"] {
+				position: absolute;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				opacity: 0;
+				cursor: pointer;
+			}
+
+			.loading {
+				text-align: center;
+				color: white;
+				padding: 40px;
+				font-size: 1rem;
+			}
+
+			.empty-message {
+				text-align: center;
+				color: white;
+				padding: 40px;
+			}
+
+			.empty-message p {
+				margin-bottom: 20px;
+				opacity: 0.9;
+			}
+
+			.btn-primary {
+				display: inline-block;
+				padding: 12px 30px;
+				background: white;
+				color: #764ba2;
+				text-decoration: none;
+				border-radius: 25px;
+				font-weight: 600;
+			}
+
+			.btn-primary:hover {
+				transform: scale(1.05);
+			}
+		</style>
+
+		<script>
+			const resultsGrid = document.getElementById("results-grid");
+			const emptyMessage = document.getElementById("empty-message");
+
+			loadResults();
+
+			async function loadResults() {
+				try {
+					const response = await fetch("/api/results/incorrect");
+					const results = await response.json();
+
+					if (results.length === 0) {
+						resultsGrid!.style.display = "none";
+						emptyMessage!.style.display = "block";
+						return;
+					}
+
+					resultsGrid!.innerHTML = results
+						.map(
+							(result: any) => `
+						<div class="result-card" id="card-${result.id}">
+							<img src="${result.image_url}" alt="${result.image_name}" class="result-image" id="img-${result.image_id}" />
+							<div class="result-info">
+								<div class="result-name">${result.image_name}</div>
+								<div class="result-actions">
+									<button class="btn btn-correct" onclick="markCorrect(${result.id})">
+										Mark Correct
+									</button>
+									<label class="btn btn-edit">
+										Edit
+										<input type="file" accept="image/*" onchange="uploadImage(event, ${result.image_id})" />
+									</label>
+								</div>
+							</div>
+						</div>
+					`,
+						)
+						.join("");
+				} catch (error) {
+					console.error("Failed to load results:", error);
+					resultsGrid!.innerHTML =
+						'<div class="loading">Error loading results</div>';
+				}
+			}
+
+			async function markCorrect(id: number) {
+				try {
+					await fetch("/api/results/update", {
+						method: "PUT",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({ id, isCorrect: true }),
+					});
+					document.getElementById(`card-${id}`)?.remove();
+					checkEmpty();
+				} catch (error) {
+					console.error("Failed to update:", error);
+				}
+			}
+
+			async function uploadImage(event: Event, imageId: number) {
+				const input = event.target as HTMLInputElement;
+				const file = input.files?.[0];
+				if (!file) return;
+
+				const formData = new FormData();
+				formData.append("file", file);
+				formData.append("imageId", imageId.toString());
+
+				try {
+					const response = await fetch("/api/results/upload", {
+						method: "POST",
+						body: formData,
+					});
+					const data = await response.json();
+
+					if (data.success) {
+						// Update the image src
+						const img = document.getElementById(
+							`img-${imageId}`,
+						) as HTMLImageElement;
+						if (img) {
+							img.src = data.newUrl + "?" + Date.now(); // Cache bust
+						}
+					} else {
+						alert("Failed to upload image");
+					}
+				} catch (error) {
+					console.error("Failed to upload:", error);
+					alert("Failed to upload image");
+				}
+
+				// Reset the input
+				input.value = "";
+			}
+
+			function checkEmpty() {
+				const cards = resultsGrid!.querySelectorAll(".result-card");
+				if (cards.length === 0) {
+					resultsGrid!.style.display = "none";
+					emptyMessage!.style.display = "block";
+				}
+			}
+
+			// Make functions available globally
+			(window as any).markCorrect = markCorrect;
+			(window as any).uploadImage = uploadImage;
+		</script>
+	</body>
+</html>
