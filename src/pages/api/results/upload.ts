@@ -43,7 +43,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     // Update database with new URL
     const newUrl = `/uploads/${filename}`;
-    const success = updateImageUrl(imageIdNum, newUrl);
+    const success = await updateImageUrl(imageIdNum, newUrl);
 
     if (!success) {
       return new Response(JSON.stringify({
