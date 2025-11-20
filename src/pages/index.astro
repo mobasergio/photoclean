@@ -29,12 +29,6 @@
 			</div>
 
 			<div class="card-container" id="card-container">
-				<div class="card card-back" id="card-back">
-					<div class="card-image" id="card-image-back">
-						<div class="loading">Loading...</div>
-					</div>
-					<div class="card-name" id="card-name-back"></div>
-				</div>
 				<div class="card" id="card">
 					<div class="stamp stamp-correct" id="stamp-correct">CORRECT</div>
 					<div class="stamp stamp-incorrect" id="stamp-incorrect">NOPE</div>
@@ -167,11 +161,6 @@
 
 			.card.swiping {
 				transition: transform 0.3s ease;
-			}
-
-			.card-back {
-				transform: scale(0.95) translateY(10px);
-				z-index: 0;
 			}
 
 			.stamp {
@@ -344,7 +333,6 @@
 		<script>
 			// State
 			let currentImage: any = null;
-			let nextImage: any = null;
 			let isDragging = false;
 			let startX = 0;
 			let currentX = 0;
@@ -356,9 +344,6 @@
 			const cardContainer = document.getElementById('card-container');
 			const cardImage = document.getElementById('card-image');
 			const cardName = document.getElementById('card-name');
-			const cardBack = document.getElementById('card-back');
-			const cardImageBack = document.getElementById('card-image-back');
-			const cardNameBack = document.getElementById('card-name-back');
 			const doneMessage = document.getElementById('done-message');
 			const indicatorLeft = document.getElementById('indicator-left');
 			const indicatorRight = document.getElementById('indicator-right');
@@ -510,7 +495,7 @@
 				// Enable undo button
 				btnUndo.disabled = false;
 
-				// Save to database and load next into back card
+				// Save to database
 				try {
 					await fetch('/api/swipe', {
 						method: 'POST',
@@ -520,24 +505,12 @@
 							isCorrect
 						})
 					});
-					// Load next image into back card AFTER swipe is saved
-					loadIntoBackCard();
 				} catch (error) {
 					console.error('Failed to save swipe:', error);
 				}
 
-				// Wait for animation to complete
+				// Wait for animation to complete then load next
 				setTimeout(() => {
-					// Move back card content to front
-					if (nextImage) {
-						currentImage = nextImage;
-						cardName!.textContent = nextImage.name;
-						cardImage!.innerHTML = cardImageBack!.innerHTML;
-						nextImage = null;
-					} else {
-						currentImage = null;
-					}
-
 					// Reset card position instantly
 					card!.style.transition = 'none';
 					card!.style.transform = '';
@@ -552,12 +525,8 @@
 					card!.style.transition = '';
 					card!.classList.remove('swiping');
 
-					// Check if we need to show done message
-					if (!currentImage) {
-						cardContainer!.style.display = 'none';
-						doneMessage!.style.display = 'block';
-						(document.querySelector('.buttons') as HTMLElement).style.display = 'none';
-					}
+					// Load next image
+					loadNextImage();
 				}, 300);
 			}
 
@@ -580,9 +549,6 @@
 						incorrectCountEl!.textContent = incorrectCount.toString();
 					}
 
-					// Clear next image since we're going back
-					nextImage = null;
-
 					// Show the restored image
 					currentImage = data.image;
 					cardName!.textContent = data.image.name;
@@ -594,8 +560,6 @@
 					img.onload = () => {
 						cardImage!.innerHTML = '';
 						cardImage!.appendChild(img);
-						// Reload back card
-						loadIntoBackCard();
 					};
 
 					// Show card container if it was hidden
@@ -643,37 +607,6 @@
 				} catch (error) {
 					console.error('Failed to load image:', error);
 					cardImage!.innerHTML = `<div class="loading">Error loading image</div>`;
-				}
-			}
-
-			async function loadIntoBackCard() {
-				try {
-					const response = await fetch('/api/next-image');
-					const data = await response.json();
-
-					if (data.done) {
-						nextImage = null;
-						cardImageBack!.innerHTML = '';
-						cardNameBack!.textContent = '';
-						return;
-					}
-
-					nextImage = data;
-					cardNameBack!.textContent = data.name;
-
-					// Load image into back card
-					const img = document.createElement('img');
-					img.src = data.image_url;
-					img.alt = data.name;
-					img.onload = () => {
-						cardImageBack!.innerHTML = '';
-						cardImageBack!.appendChild(img);
-					};
-					img.onerror = () => {
-						cardImageBack!.innerHTML = `<div class="loading">Image not found</div>`;
-					};
-				} catch (error) {
-					console.error('Failed to load back card:', error);
 				}
 			}
 		</script>
