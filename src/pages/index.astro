@@ -75,6 +75,7 @@
 				justify-content: center;
 				align-items: center;
 				padding: 20px;
+				overflow-x: hidden;
 			}
 
 			.container {
@@ -511,6 +512,10 @@
 
 				// Wait for animation to complete then load next
 				setTimeout(() => {
+					// Clear current content to prevent blink
+					cardImage!.innerHTML = '<div class="loading">Loading...</div>';
+					cardName!.textContent = '';
+
 					// Reset card position instantly
 					card!.style.transition = 'none';
 					card!.style.transform = '';
