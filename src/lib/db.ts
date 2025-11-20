@@ -133,6 +133,12 @@ export function deleteSwipeResult(id: number): boolean {
   return result.changes > 0;
 }
 
+// Update image URL
+export function updateImageUrl(imageId: number, newUrl: string): boolean {
+  const result = db.prepare('UPDATE images SET image_url = ? WHERE id = ?').run(newUrl, imageId);
+  return result.changes > 0;
+}
+
 // Get statistics
 export function getStats(): { total: number; correct: number; incorrect: number } {
   const stmt = db.prepare(`
