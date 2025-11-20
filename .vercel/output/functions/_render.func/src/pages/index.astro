@@ -1,0 +1,662 @@
+---
+
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+		/>
+		<meta name="generator" content={Astro.generator} />
+		<title>PhotoClean - Image Validator</title>
+	</head>
+	<body>
+		<div class="container">
+			<header>
+				<h1>PhotoClean</h1>
+				<p class="subtitle">
+					Swipe right if correct, left if incorrect
+				</p>
+			</header>
+
+			<div class="stats" id="stats">
+				<span class="stat incorrect">
+					<span class="icon">✗</span>
+					<span id="incorrect-count">0</span>
+				</span>
+				<span class="stat correct">
+					<span class="icon">✓</span>
+					<span id="correct-count">0</span>
+				</span>
+			</div>
+
+			<div class="card-container" id="card-container">
+				<div class="card" id="card">
+					<div class="stamp stamp-correct" id="stamp-correct">
+						CORRECT
+					</div>
+					<div class="stamp stamp-incorrect" id="stamp-incorrect">
+						NOPE
+					</div>
+					<div class="card-image" id="card-image">
+						<div class="loading">Loading...</div>
+					</div>
+					<div class="card-name" id="card-name"></div>
+				</div>
+				<div class="swipe-indicator left" id="indicator-left">✗</div>
+				<div class="swipe-indicator right" id="indicator-right">✓</div>
+			</div>
+
+			<div class="done-message" id="done-message" style="display: none;">
+				<h2>All Done!</h2>
+				<p>You've reviewed all images.</p>
+				<button onclick="location.reload()">Start Over</button>
+			</div>
+
+			<div class="buttons">
+				<button
+					class="btn incorrect"
+					id="btn-incorrect"
+					aria-label="Mark as incorrect"
+				>
+					✗
+				</button>
+				<button
+					class="btn undo"
+					id="btn-undo"
+					aria-label="Undo last swipe"
+					disabled
+				>
+					↩
+				</button>
+				<button
+					class="btn correct"
+					id="btn-correct"
+					aria-label="Mark as correct"
+				>
+					✓
+				</button>
+			</div>
+		</div>
+
+		<style>
+			* {
+				box-sizing: border-box;
+				margin: 0;
+				padding: 0;
+			}
+
+			html,
+			body {
+				overflow-x: hidden;
+				width: 100%;
+				position: relative;
+			}
+
+			body {
+				font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+					Roboto, Oxygen, Ubuntu, sans-serif;
+				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+				min-height: 100vh;
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				padding: 20px;
+			}
+
+			.container {
+				width: 100%;
+				max-width: 400px;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				gap: 20px;
+			}
+
+			header {
+				text-align: center;
+				color: white;
+			}
+
+			h1 {
+				font-size: 2rem;
+				font-weight: 700;
+				margin-bottom: 5px;
+			}
+
+			.subtitle {
+				font-size: 0.9rem;
+				opacity: 0.9;
+			}
+
+			.stats {
+				display: flex;
+				gap: 30px;
+			}
+
+			.stat {
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				color: white;
+				font-size: 1.2rem;
+				font-weight: 600;
+			}
+
+			.stat .icon {
+				width: 30px;
+				height: 30px;
+				border-radius: 50%;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				font-size: 1rem;
+			}
+
+			.stat.incorrect .icon {
+				background: #ff6b6b;
+			}
+
+			.stat.correct .icon {
+				background: #51cf66;
+			}
+
+			.card-container {
+				position: relative;
+				width: 100%;
+				height: 400px;
+				perspective: 1000px;
+			}
+
+			.card {
+				position: absolute;
+				width: 100%;
+				height: 100%;
+				background: white;
+				border-radius: 20px;
+				box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+				overflow: hidden;
+				cursor: grab;
+				transition:
+					transform 0.1s ease,
+					opacity 0.3s ease;
+				user-select: none;
+				touch-action: none;
+			}
+
+			.card:active {
+				cursor: grabbing;
+			}
+
+			.card.swiping {
+				transition: transform 0.3s ease;
+			}
+
+			.stamp {
+				position: absolute;
+				top: 30px;
+				padding: 10px 20px;
+				border: 4px solid;
+				border-radius: 8px;
+				font-size: 2rem;
+				font-weight: 800;
+				text-transform: uppercase;
+				opacity: 0;
+				z-index: 10;
+				pointer-events: none;
+				transform: rotate(-15deg);
+			}
+
+			.stamp-correct {
+				right: 20px;
+				color: #51cf66;
+				border-color: #51cf66;
+				transform: rotate(15deg);
+			}
+
+			.stamp-incorrect {
+				left: 20px;
+				color: #ff6b6b;
+				border-color: #ff6b6b;
+				transform: rotate(-15deg);
+			}
+
+			.card-image {
+				width: 100%;
+				height: 320px;
+				background: #f0f0f0;
+				display: flex;
+				justify-content: center;
+			}
+
+			.card-image img {
+				width: 100%;
+				height: 100%;
+				object-fit: cover;
+			}
+
+			.loading {
+				color: #999;
+				font-size: 1rem;
+			}
+
+			.card-name {
+				padding: 20px;
+				text-align: center;
+				font-size: 1.2rem;
+				font-weight: 600;
+				color: #333;
+			}
+
+			.swipe-indicator {
+				position: absolute;
+				top: 50%;
+				transform: translateY(-50%);
+				font-size: 4rem;
+				font-weight: bold;
+				opacity: 0;
+				transition: opacity 0.2s ease;
+				pointer-events: none;
+			}
+
+			.swipe-indicator.left {
+				left: -60px;
+				color: #ff6b6b;
+			}
+
+			.swipe-indicator.right {
+				right: -60px;
+				color: #51cf66;
+			}
+
+			.buttons {
+				display: flex;
+				gap: 40px;
+			}
+
+			.btn {
+				width: 70px;
+				height: 70px;
+				border-radius: 50%;
+				border: none;
+				font-size: 2rem;
+				cursor: pointer;
+				transition:
+					transform 0.2s ease,
+					box-shadow 0.2s ease;
+				box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+			}
+
+			.btn:hover {
+				transform: scale(1.1);
+			}
+
+			.btn:active {
+				transform: scale(0.95);
+			}
+
+			.btn.incorrect {
+				background: #ff6b6b;
+				color: white;
+			}
+
+			.btn.correct {
+				background: #51cf66;
+				color: white;
+			}
+
+			.btn.undo {
+				background: #868e96;
+				color: white;
+				width: 50px;
+				height: 50px;
+				font-size: 1.4rem;
+			}
+
+			.btn.undo:disabled {
+				opacity: 0.4;
+				cursor: not-allowed;
+				transform: none;
+			}
+
+			.btn.undo:disabled:hover {
+				transform: none;
+			}
+
+			.done-message {
+				text-align: center;
+				color: white;
+				padding: 40px;
+				background: rgba(255, 255, 255, 0.1);
+				border-radius: 20px;
+				backdrop-filter: blur(10px);
+			}
+
+			.done-message h2 {
+				font-size: 1.8rem;
+				margin-bottom: 10px;
+			}
+
+			.done-message p {
+				margin-bottom: 20px;
+				opacity: 0.9;
+			}
+
+			.done-message button {
+				padding: 12px 30px;
+				font-size: 1rem;
+				border: none;
+				border-radius: 25px;
+				background: white;
+				color: #764ba2;
+				font-weight: 600;
+				cursor: pointer;
+				transition: transform 0.2s ease;
+			}
+
+			.done-message button:hover {
+				transform: scale(1.05);
+			}
+		</style>
+
+		<script>
+			// State
+			let currentImage: any = null;
+			let isDragging = false;
+			let startX = 0;
+			let currentX = 0;
+			let correctCount = 0;
+			let incorrectCount = 0;
+
+			// Elements
+			const card = document.getElementById("card");
+			const cardContainer = document.getElementById("card-container");
+			const cardImage = document.getElementById("card-image");
+			const cardName = document.getElementById("card-name");
+			const doneMessage = document.getElementById("done-message");
+			const indicatorLeft = document.getElementById("indicator-left");
+			const indicatorRight = document.getElementById("indicator-right");
+			const btnCorrect = document.getElementById("btn-correct");
+			const btnIncorrect = document.getElementById("btn-incorrect");
+			const btnUndo = document.getElementById(
+				"btn-undo",
+			) as HTMLButtonElement;
+			const correctCountEl = document.getElementById("correct-count");
+			const incorrectCountEl = document.getElementById("incorrect-count");
+			const stampCorrect = document.getElementById("stamp-correct");
+			const stampIncorrect = document.getElementById("stamp-incorrect");
+
+			// Load initial image
+			loadNextImage();
+
+			// Button handlers
+			btnCorrect?.addEventListener("click", () => swipe(true));
+			btnIncorrect?.addEventListener("click", () => swipe(false));
+			btnUndo?.addEventListener("click", undo);
+
+			// Touch events
+			card?.addEventListener("touchstart", handleTouchStart, {
+				passive: true,
+			});
+			card?.addEventListener("touchmove", handleTouchMove, {
+				passive: false,
+			});
+			card?.addEventListener("touchend", handleTouchEnd);
+
+			// Mouse events
+			card?.addEventListener("mousedown", handleMouseDown);
+			document.addEventListener("mousemove", handleMouseMove);
+			document.addEventListener("mouseup", handleMouseUp);
+
+			// Keyboard events
+			document.addEventListener("keydown", (e) => {
+				if (e.key === "ArrowLeft") swipe(false);
+				if (e.key === "ArrowRight") swipe(true);
+			});
+
+			function handleTouchStart(e: TouchEvent) {
+				if (!currentImage) return;
+				isDragging = true;
+				startX = e.touches[0].clientX;
+			}
+
+			function handleTouchMove(e: TouchEvent) {
+				if (!isDragging) return;
+				e.preventDefault();
+				currentX = e.touches[0].clientX - startX;
+				updateCardPosition();
+			}
+
+			function handleTouchEnd() {
+				if (!isDragging) return;
+				isDragging = false;
+				handleSwipeEnd();
+			}
+
+			function handleMouseDown(e: MouseEvent) {
+				if (!currentImage) return;
+				isDragging = true;
+				startX = e.clientX;
+				card!.style.cursor = "grabbing";
+			}
+
+			function handleMouseMove(e: MouseEvent) {
+				if (!isDragging) return;
+				currentX = e.clientX - startX;
+				updateCardPosition();
+			}
+
+			function handleMouseUp() {
+				if (!isDragging) return;
+				isDragging = false;
+				card!.style.cursor = "grab";
+				handleSwipeEnd();
+			}
+
+			function updateCardPosition() {
+				const rotation = currentX * 0.1;
+				card!.style.transform = `translateX(${currentX}px) rotate(${rotation}deg)`;
+
+				// Update indicators and stamps
+				const threshold = 50;
+				if (currentX < -threshold) {
+					const opacity = Math.min(1, Math.abs(currentX) / 150);
+					indicatorLeft!.style.opacity = opacity.toString();
+					indicatorRight!.style.opacity = "0";
+					stampIncorrect!.style.opacity = opacity.toString();
+					stampCorrect!.style.opacity = "0";
+				} else if (currentX > threshold) {
+					const opacity = Math.min(1, currentX / 150);
+					indicatorRight!.style.opacity = opacity.toString();
+					indicatorLeft!.style.opacity = "0";
+					stampCorrect!.style.opacity = opacity.toString();
+					stampIncorrect!.style.opacity = "0";
+				} else {
+					indicatorLeft!.style.opacity = "0";
+					indicatorRight!.style.opacity = "0";
+					stampCorrect!.style.opacity = "0";
+					stampIncorrect!.style.opacity = "0";
+				}
+			}
+
+			function handleSwipeEnd() {
+				const threshold = 100;
+
+				if (currentX < -threshold) {
+					swipe(false);
+				} else if (currentX > threshold) {
+					swipe(true);
+				} else {
+					// Reset position
+					card!.classList.add("swiping");
+					card!.style.transform = "";
+					indicatorLeft!.style.opacity = "0";
+					indicatorRight!.style.opacity = "0";
+					stampCorrect!.style.opacity = "0";
+					stampIncorrect!.style.opacity = "0";
+					setTimeout(() => card!.classList.remove("swiping"), 300);
+				}
+
+				currentX = 0;
+			}
+
+			async function swipe(isCorrect: boolean) {
+				if (!currentImage) return;
+
+				// Show stamp at full opacity
+				if (isCorrect) {
+					stampCorrect!.style.opacity = "1";
+					stampIncorrect!.style.opacity = "0";
+				} else {
+					stampIncorrect!.style.opacity = "1";
+					stampCorrect!.style.opacity = "0";
+				}
+
+				// Animate card off screen
+				card!.classList.add("swiping");
+				const direction = isCorrect ? 1 : -1;
+				card!.style.transform = `translateX(${direction * 500}px) rotate(${direction * 30}deg)`;
+				card!.style.opacity = "0";
+
+				// Update counts
+				if (isCorrect) {
+					correctCount++;
+					correctCountEl!.textContent = correctCount.toString();
+				} else {
+					incorrectCount++;
+					incorrectCountEl!.textContent = incorrectCount.toString();
+				}
+
+				// Enable undo button
+				btnUndo.disabled = false;
+
+				// Save to database
+				try {
+					await fetch("/api/swipe", {
+						method: "POST",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({
+							imageId: currentImage.id,
+							isCorrect,
+						}),
+					});
+				} catch (error) {
+					console.error("Failed to save swipe:", error);
+				}
+
+				// Wait for animation to complete then load next
+				setTimeout(() => {
+					// Clear current content to prevent blink
+					cardImage!.innerHTML =
+						'<div class="loading">Loading...</div>';
+					cardName!.textContent = "";
+
+					// Reset card position instantly
+					card!.style.transition = "none";
+					card!.style.transform = "";
+					card!.style.opacity = "1";
+					indicatorLeft!.style.opacity = "0";
+					indicatorRight!.style.opacity = "0";
+					stampCorrect!.style.opacity = "0";
+					stampIncorrect!.style.opacity = "0";
+
+					// Force reflow then restore transitions
+					card!.offsetHeight;
+					card!.style.transition = "";
+					card!.classList.remove("swiping");
+
+					// Load next image
+					loadNextImage();
+				}, 300);
+			}
+
+			async function undo() {
+				try {
+					const response = await fetch("/api/undo", {
+						method: "POST",
+					});
+					const data = await response.json();
+
+					if (!data.success) {
+						btnUndo.disabled = true;
+						return;
+					}
+
+					// Update counts based on what was undone
+					if (data.wasCorrect) {
+						correctCount = Math.max(0, correctCount - 1);
+						correctCountEl!.textContent = correctCount.toString();
+					} else {
+						incorrectCount = Math.max(0, incorrectCount - 1);
+						incorrectCountEl!.textContent =
+							incorrectCount.toString();
+					}
+
+					// Show the restored image
+					currentImage = data.image;
+					cardName!.textContent = data.image.name;
+
+					// Load image
+					const img = document.createElement("img");
+					img.src = data.image.image_url;
+					img.alt = data.image.name;
+					img.onload = () => {
+						cardImage!.innerHTML = "";
+						cardImage!.appendChild(img);
+					};
+
+					// Show card container if it was hidden
+					cardContainer!.style.display = "";
+					doneMessage!.style.display = "none";
+					(
+						document.querySelector(".buttons") as HTMLElement
+					).style.display = "";
+
+					// Enable/disable undo button based on whether there are more swipes
+					btnUndo.disabled = !data.hasMore;
+				} catch (error) {
+					console.error("Failed to undo:", error);
+				}
+			}
+
+			async function loadNextImage() {
+				try {
+					const response = await fetch("/api/next-image");
+					const data = await response.json();
+
+					if (data.done) {
+						// No more images
+						currentImage = null;
+						cardContainer!.style.display = "none";
+						doneMessage!.style.display = "block";
+						(
+							document.querySelector(".buttons") as HTMLElement
+						).style.display = "none";
+						return;
+					}
+
+					currentImage = data;
+					cardName!.textContent = data.name;
+
+					// Load image
+					const img = document.createElement("img");
+					img.src = data.image_url;
+					img.alt = data.name;
+					img.onload = () => {
+						cardImage!.innerHTML = "";
+						cardImage!.appendChild(img);
+					};
+					img.onerror = () => {
+						cardImage!.innerHTML = `<div class="loading">Image not found</div>`;
+					};
+				} catch (error) {
+					console.error("Failed to load image:", error);
+					cardImage!.innerHTML = `<div class="loading">Error loading image</div>`;
+				}
+			}
+		</script>
+	</body>
+</html>
