@@ -1,10 +1,10 @@
 import type { APIRoute } from 'astro';
-import { undoLastSwipe } from '../../lib/db';
+import { undoLastSwipe, hasSwipesToUndo } from '../../lib/db';
 
 export const POST: APIRoute = async () => {
-  const restoredImage = undoLastSwipe();
+  const result = undoLastSwipe();
 
-  if (!restoredImage) {
+  if (!result) {
     return new Response(JSON.stringify({
       success: false,
       message: 'No swipes to undo'
@@ -16,7 +16,9 @@ export const POST: APIRoute = async () => {
 
   return new Response(JSON.stringify({
     success: true,
-    image: restoredImage
+    image: result.image,
+    wasCorrect: result.wasCorrect,
+    hasMore: hasSwipesToUndo()
   }), {
     status: 200,
     headers: { 'Content-Type': 'application/json' }

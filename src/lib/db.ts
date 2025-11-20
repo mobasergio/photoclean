@@ -126,8 +126,8 @@ export function getStats(): { total: number; correct: number; incorrect: number 
   };
 }
 
-// Undo last swipe - returns the image that was restored
-export function undoLastSwipe(): Image | null {
+// Undo last swipe - returns the image that was restored and whether it was correct
+export function undoLastSwipe(): { image: Image; wasCorrect: boolean } | null {
   // Get the last swipe result
   const lastSwipe = db.prepare(`
     SELECT sr.id, sr.image_id, sr.is_correct, i.name, i.image_url, i.created_at
@@ -144,13 +144,22 @@ export function undoLastSwipe(): Image | null {
   // Delete the swipe result
   db.prepare('DELETE FROM swipe_results WHERE id = ?').run(lastSwipe.id);
 
-  // Return the image that was restored
+  // Return the image that was restored and whether it was correct
   return {
-    id: lastSwipe.image_id,
-    name: lastSwipe.name,
-    image_url: lastSwipe.image_url,
-    created_at: lastSwipe.created_at
+    image: {
+      id: lastSwipe.image_id,
+      name: lastSwipe.name,
+      image_url: lastSwipe.image_url,
+      created_at: lastSwipe.created_at
+    },
+    wasCorrect: lastSwipe.is_correct === 1
   };
+}
+
+// Check if there are any swipes to undo
+export function hasSwipesToUndo(): boolean {
+  const result = db.prepare('SELECT COUNT(*) as count FROM swipe_results').get() as { count: number };
+  return result.count > 0;
 }
 
 // Seed sample data if no images exist

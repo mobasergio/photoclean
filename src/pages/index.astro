@@ -30,6 +30,8 @@
 
 			<div class="card-container" id="card-container">
 				<div class="card" id="card">
+					<div class="stamp stamp-correct" id="stamp-correct">CORRECT</div>
+					<div class="stamp stamp-incorrect" id="stamp-incorrect">NOPE</div>
 					<div class="card-image" id="card-image">
 						<div class="loading">Loading...</div>
 					</div>
@@ -38,6 +40,7 @@
 				<div class="swipe-indicator left" id="indicator-left">✗</div>
 				<div class="swipe-indicator right" id="indicator-right">✓</div>
 			</div>
+			<div id="preload-container" style="display: none;"></div>
 
 			<div class="done-message" id="done-message" style="display: none;">
 				<h2>All Done!</h2>
@@ -159,6 +162,35 @@
 
 			.card.swiping {
 				transition: transform 0.3s ease;
+			}
+
+			.stamp {
+				position: absolute;
+				top: 30px;
+				padding: 10px 20px;
+				border: 4px solid;
+				border-radius: 8px;
+				font-size: 2rem;
+				font-weight: 800;
+				text-transform: uppercase;
+				opacity: 0;
+				z-index: 10;
+				pointer-events: none;
+				transform: rotate(-15deg);
+			}
+
+			.stamp-correct {
+				right: 20px;
+				color: #51cf66;
+				border-color: #51cf66;
+				transform: rotate(15deg);
+			}
+
+			.stamp-incorrect {
+				left: 20px;
+				color: #ff6b6b;
+				border-color: #ff6b6b;
+				transform: rotate(-15deg);
 			}
 
 			.card-image {
@@ -301,13 +333,14 @@
 
 		<script>
 			// State
-			let currentImage = null;
+			let currentImage: any = null;
+			let preloadedImage: any = null;
+			let preloadedImgEl: HTMLImageElement | null = null;
 			let isDragging = false;
 			let startX = 0;
 			let currentX = 0;
 			let correctCount = 0;
 			let incorrectCount = 0;
-			let lastSwipeWasCorrect: boolean | null = null;
 
 			// Elements
 			const card = document.getElementById('card');
@@ -322,6 +355,9 @@
 			const btnUndo = document.getElementById('btn-undo') as HTMLButtonElement;
 			const correctCountEl = document.getElementById('correct-count');
 			const incorrectCountEl = document.getElementById('incorrect-count');
+			const stampCorrect = document.getElementById('stamp-correct');
+			const stampIncorrect = document.getElementById('stamp-incorrect');
+			const preloadContainer = document.getElementById('preload-container');
 
 			// Load initial image
 			loadNextImage();
@@ -390,17 +426,25 @@
 				const rotation = currentX * 0.1;
 				card!.style.transform = `translateX(${currentX}px) rotate(${rotation}deg)`;
 
-				// Update indicators
+				// Update indicators and stamps
 				const threshold = 50;
 				if (currentX < -threshold) {
-					indicatorLeft!.style.opacity = Math.min(1, Math.abs(currentX) / 150).toString();
+					const opacity = Math.min(1, Math.abs(currentX) / 150);
+					indicatorLeft!.style.opacity = opacity.toString();
 					indicatorRight!.style.opacity = '0';
+					stampIncorrect!.style.opacity = opacity.toString();
+					stampCorrect!.style.opacity = '0';
 				} else if (currentX > threshold) {
-					indicatorRight!.style.opacity = Math.min(1, currentX / 150).toString();
+					const opacity = Math.min(1, currentX / 150);
+					indicatorRight!.style.opacity = opacity.toString();
 					indicatorLeft!.style.opacity = '0';
+					stampCorrect!.style.opacity = opacity.toString();
+					stampIncorrect!.style.opacity = '0';
 				} else {
 					indicatorLeft!.style.opacity = '0';
 					indicatorRight!.style.opacity = '0';
+					stampCorrect!.style.opacity = '0';
+					stampIncorrect!.style.opacity = '0';
 				}
 			}
 
@@ -417,6 +461,8 @@
 					card!.style.transform = '';
 					indicatorLeft!.style.opacity = '0';
 					indicatorRight!.style.opacity = '0';
+					stampCorrect!.style.opacity = '0';
+					stampIncorrect!.style.opacity = '0';
 					setTimeout(() => card!.classList.remove('swiping'), 300);
 				}
 
@@ -425,6 +471,15 @@
 
 			async function swipe(isCorrect: boolean) {
 				if (!currentImage) return;
+
+				// Show stamp at full opacity
+				if (isCorrect) {
+					stampCorrect!.style.opacity = '1';
+					stampIncorrect!.style.opacity = '0';
+				} else {
+					stampIncorrect!.style.opacity = '1';
+					stampCorrect!.style.opacity = '0';
+				}
 
 				// Animate card off screen
 				card!.classList.add('swiping');
@@ -441,8 +496,7 @@
 					incorrectCountEl!.textContent = incorrectCount.toString();
 				}
 
-				// Track last swipe for undo
-				lastSwipeWasCorrect = isCorrect;
+				// Enable undo button
 				btnUndo.disabled = false;
 
 				// Save to database
@@ -455,6 +509,10 @@
 							isCorrect
 						})
 					});
+					// Preload next image after swipe is saved
+					if (!preloadedImage) {
+						preloadNextImage();
+					}
 				} catch (error) {
 					console.error('Failed to save swipe:', error);
 				}
@@ -466,6 +524,8 @@
 					card!.style.opacity = '1';
 					indicatorLeft!.style.opacity = '0';
 					indicatorRight!.style.opacity = '0';
+					stampCorrect!.style.opacity = '0';
+					stampIncorrect!.style.opacity = '0';
 
 					setTimeout(() => {
 						card!.style.transition = '';
@@ -481,17 +541,22 @@
 					const data = await response.json();
 
 					if (!data.success) {
+						btnUndo.disabled = true;
 						return;
 					}
 
-					// Update counts
-					if (lastSwipeWasCorrect === true) {
+					// Update counts based on what was undone
+					if (data.wasCorrect) {
 						correctCount = Math.max(0, correctCount - 1);
 						correctCountEl!.textContent = correctCount.toString();
-					} else if (lastSwipeWasCorrect === false) {
+					} else {
 						incorrectCount = Math.max(0, incorrectCount - 1);
 						incorrectCountEl!.textContent = incorrectCount.toString();
 					}
+
+					// Clear preloaded image since we're going back
+					preloadedImage = null;
+					preloadedImgEl = null;
 
 					// Show the restored image
 					currentImage = data.image;
@@ -511,9 +576,8 @@
 					doneMessage!.style.display = 'none';
 					(document.querySelector('.buttons') as HTMLElement).style.display = '';
 
-					// Disable undo button (only one undo allowed)
-					btnUndo.disabled = true;
-					lastSwipeWasCorrect = null;
+					// Enable/disable undo button based on whether there are more swipes
+					btnUndo.disabled = !data.hasMore;
 
 				} catch (error) {
 					console.error('Failed to undo:', error);
@@ -522,6 +586,20 @@
 
 			async function loadNextImage() {
 				try {
+					// Check if we have a preloaded image
+					if (preloadedImage && preloadedImgEl) {
+						currentImage = preloadedImage;
+						cardName!.textContent = preloadedImage.name;
+						cardImage!.innerHTML = '';
+						cardImage!.appendChild(preloadedImgEl);
+
+						// Clear preload and fetch next
+						preloadedImage = null;
+						preloadedImgEl = null;
+						preloadNextImage();
+						return;
+					}
+
 					const response = await fetch('/api/next-image');
 					const data = await response.json();
 
@@ -552,6 +630,34 @@
 				} catch (error) {
 					console.error('Failed to load image:', error);
 					cardImage!.innerHTML = `<div class="loading">Error loading image</div>`;
+				}
+			}
+
+			async function preloadNextImage() {
+				try {
+					const response = await fetch('/api/next-image');
+					const data = await response.json();
+
+					if (data.done) {
+						preloadedImage = null;
+						preloadedImgEl = null;
+						return;
+					}
+
+					// Preload the image
+					const img = document.createElement('img');
+					img.src = data.image_url;
+					img.alt = data.name;
+					img.onload = () => {
+						preloadedImage = data;
+						preloadedImgEl = img;
+					};
+					img.onerror = () => {
+						preloadedImage = null;
+						preloadedImgEl = null;
+					};
+				} catch (error) {
+					console.error('Failed to preload image:', error);
 				}
 			}
 		</script>
