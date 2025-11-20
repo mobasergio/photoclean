@@ -99,14 +99,38 @@ export function addImage(name: string, imageUrl: string): Image {
 }
 
 // Get all results
-export function getAllResults(): (SwipeResult & { image_name: string })[] {
+export function getAllResults(): (SwipeResult & { image_name: string; image_url: string })[] {
   const stmt = db.prepare(`
-    SELECT sr.*, i.name as image_name
+    SELECT sr.*, i.name as image_name, i.image_url
     FROM swipe_results sr
     JOIN images i ON sr.image_id = i.id
     ORDER BY sr.created_at DESC
   `);
-  return stmt.all() as (SwipeResult & { image_name: string })[];
+  return stmt.all() as (SwipeResult & { image_name: string; image_url: string })[];
+}
+
+// Get results filtered by correct/incorrect
+export function getFilteredResults(isCorrect: boolean): (SwipeResult & { image_name: string; image_url: string })[] {
+  const stmt = db.prepare(`
+    SELECT sr.*, i.name as image_name, i.image_url
+    FROM swipe_results sr
+    JOIN images i ON sr.image_id = i.id
+    WHERE sr.is_correct = ?
+    ORDER BY sr.created_at DESC
+  `);
+  return stmt.all(isCorrect ? 1 : 0) as (SwipeResult & { image_name: string; image_url: string })[];
+}
+
+// Update a swipe result
+export function updateSwipeResult(id: number, isCorrect: boolean): boolean {
+  const result = db.prepare('UPDATE swipe_results SET is_correct = ? WHERE id = ?').run(isCorrect ? 1 : 0, id);
+  return result.changes > 0;
+}
+
+// Delete a swipe result
+export function deleteSwipeResult(id: number): boolean {
+  const result = db.prepare('DELETE FROM swipe_results WHERE id = ?').run(id);
+  return result.changes > 0;
 }
 
 // Get statistics
