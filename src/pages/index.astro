@@ -156,7 +156,7 @@
 				box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 				overflow: hidden;
 				cursor: grab;
-				transition: transform 0.1s ease;
+				transition: transform 0.1s ease, opacity 0.3s ease;
 				user-select: none;
 				touch-action: none;
 			}
@@ -510,7 +510,7 @@
 				// Enable undo button
 				btnUndo.disabled = false;
 
-				// Save to database
+				// Save to database and load next into back card
 				try {
 					await fetch('/api/swipe', {
 						method: 'POST',
@@ -520,20 +520,14 @@
 							isCorrect
 						})
 					});
+					// Load next image into back card AFTER swipe is saved
+					loadIntoBackCard();
 				} catch (error) {
 					console.error('Failed to save swipe:', error);
 				}
 
-				// Load next image after animation
+				// Wait for animation to complete
 				setTimeout(() => {
-					card!.style.transition = 'none';
-					card!.style.transform = '';
-					card!.style.opacity = '1';
-					indicatorLeft!.style.opacity = '0';
-					indicatorRight!.style.opacity = '0';
-					stampCorrect!.style.opacity = '0';
-					stampIncorrect!.style.opacity = '0';
-
 					// Move back card content to front
 					if (nextImage) {
 						currentImage = nextImage;
@@ -544,20 +538,26 @@
 						currentImage = null;
 					}
 
-					setTimeout(() => {
-						card!.style.transition = '';
-						card!.classList.remove('swiping');
+					// Reset card position instantly
+					card!.style.transition = 'none';
+					card!.style.transform = '';
+					card!.style.opacity = '1';
+					indicatorLeft!.style.opacity = '0';
+					indicatorRight!.style.opacity = '0';
+					stampCorrect!.style.opacity = '0';
+					stampIncorrect!.style.opacity = '0';
 
-						// Check if we need to show done message or load next into back
-						if (!currentImage) {
-							cardContainer!.style.display = 'none';
-							doneMessage!.style.display = 'block';
-							(document.querySelector('.buttons') as HTMLElement).style.display = 'none';
-						} else {
-							// Load next image into back card
-							loadIntoBackCard();
-						}
-					}, 50);
+					// Force reflow then restore transitions
+					card!.offsetHeight;
+					card!.style.transition = '';
+					card!.classList.remove('swiping');
+
+					// Check if we need to show done message
+					if (!currentImage) {
+						cardContainer!.style.display = 'none';
+						doneMessage!.style.display = 'block';
+						(document.querySelector('.buttons') as HTMLElement).style.display = 'none';
+					}
 				}, 300);
 			}
 
@@ -635,12 +635,9 @@
 					img.onload = () => {
 						cardImage!.innerHTML = '';
 						cardImage!.appendChild(img);
-						// Load next image into back card
-						loadIntoBackCard();
 					};
 					img.onerror = () => {
 						cardImage!.innerHTML = `<div class="loading">Image not found</div>`;
-						loadIntoBackCard();
 					};
 
 				} catch (error) {
