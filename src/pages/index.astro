@@ -6,7 +6,10 @@
 	<head>
 		<meta charset="utf-8" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+		/>
 		<meta name="generator" content={Astro.generator} />
 		<title>PhotoClean - Image Validator</title>
 	</head>
@@ -14,7 +17,9 @@
 		<div class="container">
 			<header>
 				<h1>PhotoClean</h1>
-				<p class="subtitle">Swipe right if correct, left if incorrect</p>
+				<p class="subtitle">
+					Swipe right if correct, left if incorrect
+				</p>
 			</header>
 
 			<div class="stats" id="stats">
@@ -30,8 +35,12 @@
 
 			<div class="card-container" id="card-container">
 				<div class="card" id="card">
-					<div class="stamp stamp-correct" id="stamp-correct">CORRECT</div>
-					<div class="stamp stamp-incorrect" id="stamp-incorrect">NOPE</div>
+					<div class="stamp stamp-correct" id="stamp-correct">
+						CORRECT
+					</div>
+					<div class="stamp stamp-incorrect" id="stamp-incorrect">
+						NOPE
+					</div>
 					<div class="card-image" id="card-image">
 						<div class="loading">Loading...</div>
 					</div>
@@ -48,13 +57,26 @@
 			</div>
 
 			<div class="buttons">
-				<button class="btn incorrect" id="btn-incorrect" aria-label="Mark as incorrect">
+				<button
+					class="btn incorrect"
+					id="btn-incorrect"
+					aria-label="Mark as incorrect"
+				>
 					✗
 				</button>
-				<button class="btn undo" id="btn-undo" aria-label="Undo last swipe" disabled>
+				<button
+					class="btn undo"
+					id="btn-undo"
+					aria-label="Undo last swipe"
+					disabled
+				>
 					↩
 				</button>
-				<button class="btn correct" id="btn-correct" aria-label="Mark as correct">
+				<button
+					class="btn correct"
+					id="btn-correct"
+					aria-label="Mark as correct"
+				>
 					✓
 				</button>
 			</div>
@@ -67,14 +89,16 @@
 				padding: 0;
 			}
 
-			html, body {
+			html,
+			body {
 				overflow-x: hidden;
 				width: 100%;
 				position: relative;
 			}
 
 			body {
-				font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+				font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+					Roboto, Oxygen, Ubuntu, sans-serif;
 				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 				min-height: 100vh;
 				display: flex;
@@ -156,7 +180,9 @@
 				box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 				overflow: hidden;
 				cursor: grab;
-				transition: transform 0.1s ease, opacity 0.3s ease;
+				transition:
+					transform 0.1s ease,
+					opacity 0.3s ease;
 				user-select: none;
 				touch-action: none;
 			}
@@ -203,9 +229,7 @@
 				height: 320px;
 				background: #f0f0f0;
 				display: flex;
-				align-items: center;
 				justify-content: center;
-				overflow: hidden;
 			}
 
 			.card-image img {
@@ -260,7 +284,9 @@
 				border: none;
 				font-size: 2rem;
 				cursor: pointer;
-				transition: transform 0.2s ease, box-shadow 0.2s ease;
+				transition:
+					transform 0.2s ease,
+					box-shadow 0.2s ease;
 				box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
 			}
 
@@ -346,43 +372,49 @@
 			let incorrectCount = 0;
 
 			// Elements
-			const card = document.getElementById('card');
-			const cardContainer = document.getElementById('card-container');
-			const cardImage = document.getElementById('card-image');
-			const cardName = document.getElementById('card-name');
-			const doneMessage = document.getElementById('done-message');
-			const indicatorLeft = document.getElementById('indicator-left');
-			const indicatorRight = document.getElementById('indicator-right');
-			const btnCorrect = document.getElementById('btn-correct');
-			const btnIncorrect = document.getElementById('btn-incorrect');
-			const btnUndo = document.getElementById('btn-undo') as HTMLButtonElement;
-			const correctCountEl = document.getElementById('correct-count');
-			const incorrectCountEl = document.getElementById('incorrect-count');
-			const stampCorrect = document.getElementById('stamp-correct');
-			const stampIncorrect = document.getElementById('stamp-incorrect');
+			const card = document.getElementById("card");
+			const cardContainer = document.getElementById("card-container");
+			const cardImage = document.getElementById("card-image");
+			const cardName = document.getElementById("card-name");
+			const doneMessage = document.getElementById("done-message");
+			const indicatorLeft = document.getElementById("indicator-left");
+			const indicatorRight = document.getElementById("indicator-right");
+			const btnCorrect = document.getElementById("btn-correct");
+			const btnIncorrect = document.getElementById("btn-incorrect");
+			const btnUndo = document.getElementById(
+				"btn-undo",
+			) as HTMLButtonElement;
+			const correctCountEl = document.getElementById("correct-count");
+			const incorrectCountEl = document.getElementById("incorrect-count");
+			const stampCorrect = document.getElementById("stamp-correct");
+			const stampIncorrect = document.getElementById("stamp-incorrect");
 
 			// Load initial image
 			loadNextImage();
 
 			// Button handlers
-			btnCorrect?.addEventListener('click', () => swipe(true));
-			btnIncorrect?.addEventListener('click', () => swipe(false));
-			btnUndo?.addEventListener('click', undo);
+			btnCorrect?.addEventListener("click", () => swipe(true));
+			btnIncorrect?.addEventListener("click", () => swipe(false));
+			btnUndo?.addEventListener("click", undo);
 
 			// Touch events
-			card?.addEventListener('touchstart', handleTouchStart, { passive: true });
-			card?.addEventListener('touchmove', handleTouchMove, { passive: false });
-			card?.addEventListener('touchend', handleTouchEnd);
+			card?.addEventListener("touchstart", handleTouchStart, {
+				passive: true,
+			});
+			card?.addEventListener("touchmove", handleTouchMove, {
+				passive: false,
+			});
+			card?.addEventListener("touchend", handleTouchEnd);
 
 			// Mouse events
-			card?.addEventListener('mousedown', handleMouseDown);
-			document.addEventListener('mousemove', handleMouseMove);
-			document.addEventListener('mouseup', handleMouseUp);
+			card?.addEventListener("mousedown", handleMouseDown);
+			document.addEventListener("mousemove", handleMouseMove);
+			document.addEventListener("mouseup", handleMouseUp);
 
 			// Keyboard events
-			document.addEventListener('keydown', (e) => {
-				if (e.key === 'ArrowLeft') swipe(false);
-				if (e.key === 'ArrowRight') swipe(true);
+			document.addEventListener("keydown", (e) => {
+				if (e.key === "ArrowLeft") swipe(false);
+				if (e.key === "ArrowRight") swipe(true);
 			});
 
 			function handleTouchStart(e: TouchEvent) {
@@ -408,7 +440,7 @@
 				if (!currentImage) return;
 				isDragging = true;
 				startX = e.clientX;
-				card!.style.cursor = 'grabbing';
+				card!.style.cursor = "grabbing";
 			}
 
 			function handleMouseMove(e: MouseEvent) {
@@ -420,7 +452,7 @@
 			function handleMouseUp() {
 				if (!isDragging) return;
 				isDragging = false;
-				card!.style.cursor = 'grab';
+				card!.style.cursor = "grab";
 				handleSwipeEnd();
 			}
 
@@ -433,20 +465,20 @@
 				if (currentX < -threshold) {
 					const opacity = Math.min(1, Math.abs(currentX) / 150);
 					indicatorLeft!.style.opacity = opacity.toString();
-					indicatorRight!.style.opacity = '0';
+					indicatorRight!.style.opacity = "0";
 					stampIncorrect!.style.opacity = opacity.toString();
-					stampCorrect!.style.opacity = '0';
+					stampCorrect!.style.opacity = "0";
 				} else if (currentX > threshold) {
 					const opacity = Math.min(1, currentX / 150);
 					indicatorRight!.style.opacity = opacity.toString();
-					indicatorLeft!.style.opacity = '0';
+					indicatorLeft!.style.opacity = "0";
 					stampCorrect!.style.opacity = opacity.toString();
-					stampIncorrect!.style.opacity = '0';
+					stampIncorrect!.style.opacity = "0";
 				} else {
-					indicatorLeft!.style.opacity = '0';
-					indicatorRight!.style.opacity = '0';
-					stampCorrect!.style.opacity = '0';
-					stampIncorrect!.style.opacity = '0';
+					indicatorLeft!.style.opacity = "0";
+					indicatorRight!.style.opacity = "0";
+					stampCorrect!.style.opacity = "0";
+					stampIncorrect!.style.opacity = "0";
 				}
 			}
 
@@ -459,13 +491,13 @@
 					swipe(true);
 				} else {
 					// Reset position
-					card!.classList.add('swiping');
-					card!.style.transform = '';
-					indicatorLeft!.style.opacity = '0';
-					indicatorRight!.style.opacity = '0';
-					stampCorrect!.style.opacity = '0';
-					stampIncorrect!.style.opacity = '0';
-					setTimeout(() => card!.classList.remove('swiping'), 300);
+					card!.classList.add("swiping");
+					card!.style.transform = "";
+					indicatorLeft!.style.opacity = "0";
+					indicatorRight!.style.opacity = "0";
+					stampCorrect!.style.opacity = "0";
+					stampIncorrect!.style.opacity = "0";
+					setTimeout(() => card!.classList.remove("swiping"), 300);
 				}
 
 				currentX = 0;
@@ -476,18 +508,18 @@
 
 				// Show stamp at full opacity
 				if (isCorrect) {
-					stampCorrect!.style.opacity = '1';
-					stampIncorrect!.style.opacity = '0';
+					stampCorrect!.style.opacity = "1";
+					stampIncorrect!.style.opacity = "0";
 				} else {
-					stampIncorrect!.style.opacity = '1';
-					stampCorrect!.style.opacity = '0';
+					stampIncorrect!.style.opacity = "1";
+					stampCorrect!.style.opacity = "0";
 				}
 
 				// Animate card off screen
-				card!.classList.add('swiping');
+				card!.classList.add("swiping");
 				const direction = isCorrect ? 1 : -1;
 				card!.style.transform = `translateX(${direction * 500}px) rotate(${direction * 30}deg)`;
-				card!.style.opacity = '0';
+				card!.style.opacity = "0";
 
 				// Update counts
 				if (isCorrect) {
@@ -503,37 +535,38 @@
 
 				// Save to database
 				try {
-					await fetch('/api/swipe', {
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
+					await fetch("/api/swipe", {
+						method: "POST",
+						headers: { "Content-Type": "application/json" },
 						body: JSON.stringify({
 							imageId: currentImage.id,
-							isCorrect
-						})
+							isCorrect,
+						}),
 					});
 				} catch (error) {
-					console.error('Failed to save swipe:', error);
+					console.error("Failed to save swipe:", error);
 				}
 
 				// Wait for animation to complete then load next
 				setTimeout(() => {
 					// Clear current content to prevent blink
-					cardImage!.innerHTML = '<div class="loading">Loading...</div>';
-					cardName!.textContent = '';
+					cardImage!.innerHTML =
+						'<div class="loading">Loading...</div>';
+					cardName!.textContent = "";
 
 					// Reset card position instantly
-					card!.style.transition = 'none';
-					card!.style.transform = '';
-					card!.style.opacity = '1';
-					indicatorLeft!.style.opacity = '0';
-					indicatorRight!.style.opacity = '0';
-					stampCorrect!.style.opacity = '0';
-					stampIncorrect!.style.opacity = '0';
+					card!.style.transition = "none";
+					card!.style.transform = "";
+					card!.style.opacity = "1";
+					indicatorLeft!.style.opacity = "0";
+					indicatorRight!.style.opacity = "0";
+					stampCorrect!.style.opacity = "0";
+					stampIncorrect!.style.opacity = "0";
 
 					// Force reflow then restore transitions
 					card!.offsetHeight;
-					card!.style.transition = '';
-					card!.classList.remove('swiping');
+					card!.style.transition = "";
+					card!.classList.remove("swiping");
 
 					// Load next image
 					loadNextImage();
@@ -542,7 +575,9 @@
 
 			async function undo() {
 				try {
-					const response = await fetch('/api/undo', { method: 'POST' });
+					const response = await fetch("/api/undo", {
+						method: "POST",
+					});
 					const data = await response.json();
 
 					if (!data.success) {
@@ -556,7 +591,8 @@
 						correctCountEl!.textContent = correctCount.toString();
 					} else {
 						incorrectCount = Math.max(0, incorrectCount - 1);
-						incorrectCountEl!.textContent = incorrectCount.toString();
+						incorrectCountEl!.textContent =
+							incorrectCount.toString();
 					}
 
 					// Show the restored image
@@ -564,38 +600,41 @@
 					cardName!.textContent = data.image.name;
 
 					// Load image
-					const img = document.createElement('img');
+					const img = document.createElement("img");
 					img.src = data.image.image_url;
 					img.alt = data.image.name;
 					img.onload = () => {
-						cardImage!.innerHTML = '';
+						cardImage!.innerHTML = "";
 						cardImage!.appendChild(img);
 					};
 
 					// Show card container if it was hidden
-					cardContainer!.style.display = '';
-					doneMessage!.style.display = 'none';
-					(document.querySelector('.buttons') as HTMLElement).style.display = '';
+					cardContainer!.style.display = "";
+					doneMessage!.style.display = "none";
+					(
+						document.querySelector(".buttons") as HTMLElement
+					).style.display = "";
 
 					// Enable/disable undo button based on whether there are more swipes
 					btnUndo.disabled = !data.hasMore;
-
 				} catch (error) {
-					console.error('Failed to undo:', error);
+					console.error("Failed to undo:", error);
 				}
 			}
 
 			async function loadNextImage() {
 				try {
-					const response = await fetch('/api/next-image');
+					const response = await fetch("/api/next-image");
 					const data = await response.json();
 
 					if (data.done) {
 						// No more images
 						currentImage = null;
-						cardContainer!.style.display = 'none';
-						doneMessage!.style.display = 'block';
-						(document.querySelector('.buttons') as HTMLElement).style.display = 'none';
+						cardContainer!.style.display = "none";
+						doneMessage!.style.display = "block";
+						(
+							document.querySelector(".buttons") as HTMLElement
+						).style.display = "none";
 						return;
 					}
 
@@ -603,19 +642,18 @@
 					cardName!.textContent = data.name;
 
 					// Load image
-					const img = document.createElement('img');
+					const img = document.createElement("img");
 					img.src = data.image_url;
 					img.alt = data.name;
 					img.onload = () => {
-						cardImage!.innerHTML = '';
+						cardImage!.innerHTML = "";
 						cardImage!.appendChild(img);
 					};
 					img.onerror = () => {
 						cardImage!.innerHTML = `<div class="loading">Image not found</div>`;
 					};
-
 				} catch (error) {
-					console.error('Failed to load image:', error);
+					console.error("Failed to load image:", error);
 					cardImage!.innerHTML = `<div class="loading">Error loading image</div>`;
 				}
 			}

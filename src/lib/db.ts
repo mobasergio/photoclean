@@ -7,13 +7,11 @@ const __dirname = dirname(__filename);
 
 const dbPath = join(__dirname, '../../data/swipes.db');
 
-// Ensure data directory exists
-import { mkdirSync } from 'fs';
+import { mkdirSync, readdirSync } from 'fs';
 mkdirSync(join(__dirname, '../../data'), { recursive: true });
 
 const db = new Database(dbPath);
 
-// Initialize tables
 db.exec(`
   CREATE TABLE IF NOT EXISTS images (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -45,7 +43,6 @@ export interface SwipeResult {
   created_at: string;
 }
 
-// Get all images that haven't been swiped yet
 export function getUnswipedImages(): Image[] {
   const stmt = db.prepare(`
     SELECT i.* FROM images i
@@ -56,7 +53,6 @@ export function getUnswipedImages(): Image[] {
   return stmt.all() as Image[];
 }
 
-// Get next unswiped image
 export function getNextImage(): Image | undefined {
   const stmt = db.prepare(`
     SELECT i.* FROM images i
@@ -68,7 +64,6 @@ export function getNextImage(): Image | undefined {
   return stmt.get() as Image | undefined;
 }
 
-// Save swipe result
 export function saveSwipeResult(imageId: number, isCorrect: boolean): SwipeResult {
   const stmt = db.prepare(`
     INSERT INTO swipe_results (image_id, is_correct)
@@ -83,7 +78,6 @@ export function saveSwipeResult(imageId: number, isCorrect: boolean): SwipeResul
   };
 }
 
-// Add a new image
 export function addImage(name: string, imageUrl: string): Image {
   const stmt = db.prepare(`
     INSERT INTO images (name, image_url)
@@ -98,7 +92,6 @@ export function addImage(name: string, imageUrl: string): Image {
   };
 }
 
-// Get all results
 export function getAllResults(): (SwipeResult & { image_name: string; image_url: string })[] {
   const stmt = db.prepare(`
     SELECT sr.*, i.name as image_name, i.image_url
@@ -109,7 +102,6 @@ export function getAllResults(): (SwipeResult & { image_name: string; image_url:
   return stmt.all() as (SwipeResult & { image_name: string; image_url: string })[];
 }
 
-// Get results filtered by correct/incorrect
 export function getFilteredResults(isCorrect: boolean): (SwipeResult & { image_name: string; image_url: string })[] {
   const stmt = db.prepare(`
     SELECT sr.*, i.name as image_name, i.image_url
@@ -121,25 +113,21 @@ export function getFilteredResults(isCorrect: boolean): (SwipeResult & { image_n
   return stmt.all(isCorrect ? 1 : 0) as (SwipeResult & { image_name: string; image_url: string })[];
 }
 
-// Update a swipe result
 export function updateSwipeResult(id: number, isCorrect: boolean): boolean {
   const result = db.prepare('UPDATE swipe_results SET is_correct = ? WHERE id = ?').run(isCorrect ? 1 : 0, id);
   return result.changes > 0;
 }
 
-// Delete a swipe result
 export function deleteSwipeResult(id: number): boolean {
   const result = db.prepare('DELETE FROM swipe_results WHERE id = ?').run(id);
   return result.changes > 0;
 }
 
-// Update image URL
 export function updateImageUrl(imageId: number, newUrl: string): boolean {
   const result = db.prepare('UPDATE images SET image_url = ? WHERE id = ?').run(newUrl, imageId);
   return result.changes > 0;
 }
 
-// Get statistics
 export function getStats(): { total: number; correct: number; incorrect: number } {
   const stmt = db.prepare(`
     SELECT
@@ -156,9 +144,7 @@ export function getStats(): { total: number; correct: number; incorrect: number 
   };
 }
 
-// Undo last swipe - returns the image that was restored and whether it was correct
 export function undoLastSwipe(): { image: Image; wasCorrect: boolean } | null {
-  // Get the last swipe result
   const lastSwipe = db.prepare(`
     SELECT sr.id, sr.image_id, sr.is_correct, i.name, i.image_url, i.created_at
     FROM swipe_results sr
@@ -171,10 +157,8 @@ export function undoLastSwipe(): { image: Image; wasCorrect: boolean } | null {
     return null;
   }
 
-  // Delete the swipe result
   db.prepare('DELETE FROM swipe_results WHERE id = ?').run(lastSwipe.id);
 
-  // Return the image that was restored and whether it was correct
   return {
     image: {
       id: lastSwipe.image_id,
@@ -186,28 +170,26 @@ export function undoLastSwipe(): { image: Image; wasCorrect: boolean } | null {
   };
 }
 
-// Check if there are any swipes to undo
 export function hasSwipesToUndo(): boolean {
   const result = db.prepare('SELECT COUNT(*) as count FROM swipe_results').get() as { count: number };
   return result.count > 0;
 }
 
-// Seed sample data if no images exist
 export function seedSampleData(): void {
   const count = db.prepare('SELECT COUNT(*) as count FROM images').get() as { count: number };
 
   if (count.count === 0) {
-    const sampleImages = [
-      { name: 'Mountain Sunset', url: 'https://picsum.photos/seed/mountain/400/320' },
-      { name: 'Ocean Beach', url: 'https://picsum.photos/seed/beach/400/320' },
-      { name: 'Forest Trail', url: 'https://picsum.photos/seed/forest/400/320' },
-      { name: 'City Skyline', url: 'https://picsum.photos/seed/city/400/320' },
-      { name: 'Desert Dunes', url: 'https://picsum.photos/seed/desert/400/320' },
-    ];
+    // Read all images from src/images directory
+    const imagesDir = join(__dirname, '../images');
+    const imageFiles = readdirSync(imagesDir).filter(file => file.endsWith('.jpg'));
 
     const insertStmt = db.prepare('INSERT INTO images (name, image_url) VALUES (?, ?)');
-    for (const img of sampleImages) {
-      insertStmt.run(img.name, img.url);
+    for (const file of imageFiles) {
+      // Extract a readable name from the filename (remove extension and replace underscores with spaces)
+      const name = file.replace('.jpg', '').replace(/_/g, ' ');
+      // Use relative path from the public directory
+      const url = `/images/${file}`;
+      insertStmt.run(name, url);
     }
   }
 }
