@@ -29,6 +29,12 @@
 			</div>
 
 			<div class="card-container" id="card-container">
+				<div class="card card-back" id="card-back">
+					<div class="card-image" id="card-image-back">
+						<div class="loading">Loading...</div>
+					</div>
+					<div class="card-name" id="card-name-back"></div>
+				</div>
 				<div class="card" id="card">
 					<div class="stamp stamp-correct" id="stamp-correct">CORRECT</div>
 					<div class="stamp stamp-incorrect" id="stamp-incorrect">NOPE</div>
@@ -40,7 +46,6 @@
 				<div class="swipe-indicator left" id="indicator-left">✗</div>
 				<div class="swipe-indicator right" id="indicator-right">✓</div>
 			</div>
-			<div id="preload-container" style="display: none;"></div>
 
 			<div class="done-message" id="done-message" style="display: none;">
 				<h2>All Done!</h2>
@@ -162,6 +167,11 @@
 
 			.card.swiping {
 				transition: transform 0.3s ease;
+			}
+
+			.card-back {
+				transform: scale(0.95) translateY(10px);
+				z-index: 0;
 			}
 
 			.stamp {
@@ -334,8 +344,7 @@
 		<script>
 			// State
 			let currentImage: any = null;
-			let preloadedImage: any = null;
-			let preloadedImgEl: HTMLImageElement | null = null;
+			let nextImage: any = null;
 			let isDragging = false;
 			let startX = 0;
 			let currentX = 0;
@@ -347,6 +356,9 @@
 			const cardContainer = document.getElementById('card-container');
 			const cardImage = document.getElementById('card-image');
 			const cardName = document.getElementById('card-name');
+			const cardBack = document.getElementById('card-back');
+			const cardImageBack = document.getElementById('card-image-back');
+			const cardNameBack = document.getElementById('card-name-back');
 			const doneMessage = document.getElementById('done-message');
 			const indicatorLeft = document.getElementById('indicator-left');
 			const indicatorRight = document.getElementById('indicator-right');
@@ -357,7 +369,6 @@
 			const incorrectCountEl = document.getElementById('incorrect-count');
 			const stampCorrect = document.getElementById('stamp-correct');
 			const stampIncorrect = document.getElementById('stamp-incorrect');
-			const preloadContainer = document.getElementById('preload-container');
 
 			// Load initial image
 			loadNextImage();
@@ -509,10 +520,6 @@
 							isCorrect
 						})
 					});
-					// Preload next image after swipe is saved
-					if (!preloadedImage) {
-						preloadNextImage();
-					}
 				} catch (error) {
 					console.error('Failed to save swipe:', error);
 				}
@@ -527,10 +534,29 @@
 					stampCorrect!.style.opacity = '0';
 					stampIncorrect!.style.opacity = '0';
 
+					// Move back card content to front
+					if (nextImage) {
+						currentImage = nextImage;
+						cardName!.textContent = nextImage.name;
+						cardImage!.innerHTML = cardImageBack!.innerHTML;
+						nextImage = null;
+					} else {
+						currentImage = null;
+					}
+
 					setTimeout(() => {
 						card!.style.transition = '';
 						card!.classList.remove('swiping');
-						loadNextImage();
+
+						// Check if we need to show done message or load next into back
+						if (!currentImage) {
+							cardContainer!.style.display = 'none';
+							doneMessage!.style.display = 'block';
+							(document.querySelector('.buttons') as HTMLElement).style.display = 'none';
+						} else {
+							// Load next image into back card
+							loadIntoBackCard();
+						}
 					}, 50);
 				}, 300);
 			}
@@ -554,9 +580,8 @@
 						incorrectCountEl!.textContent = incorrectCount.toString();
 					}
 
-					// Clear preloaded image since we're going back
-					preloadedImage = null;
-					preloadedImgEl = null;
+					// Clear next image since we're going back
+					nextImage = null;
 
 					// Show the restored image
 					currentImage = data.image;
@@ -569,6 +594,8 @@
 					img.onload = () => {
 						cardImage!.innerHTML = '';
 						cardImage!.appendChild(img);
+						// Reload back card
+						loadIntoBackCard();
 					};
 
 					// Show card container if it was hidden
@@ -586,20 +613,6 @@
 
 			async function loadNextImage() {
 				try {
-					// Check if we have a preloaded image
-					if (preloadedImage && preloadedImgEl) {
-						currentImage = preloadedImage;
-						cardName!.textContent = preloadedImage.name;
-						cardImage!.innerHTML = '';
-						cardImage!.appendChild(preloadedImgEl);
-
-						// Clear preload and fetch next
-						preloadedImage = null;
-						preloadedImgEl = null;
-						preloadNextImage();
-						return;
-					}
-
 					const response = await fetch('/api/next-image');
 					const data = await response.json();
 
@@ -622,9 +635,12 @@
 					img.onload = () => {
 						cardImage!.innerHTML = '';
 						cardImage!.appendChild(img);
+						// Load next image into back card
+						loadIntoBackCard();
 					};
 					img.onerror = () => {
 						cardImage!.innerHTML = `<div class="loading">Image not found</div>`;
+						loadIntoBackCard();
 					};
 
 				} catch (error) {
@@ -633,31 +649,34 @@
 				}
 			}
 
-			async function preloadNextImage() {
+			async function loadIntoBackCard() {
 				try {
 					const response = await fetch('/api/next-image');
 					const data = await response.json();
 
 					if (data.done) {
-						preloadedImage = null;
-						preloadedImgEl = null;
+						nextImage = null;
+						cardImageBack!.innerHTML = '';
+						cardNameBack!.textContent = '';
 						return;
 					}
 
-					// Preload the image
+					nextImage = data;
+					cardNameBack!.textContent = data.name;
+
+					// Load image into back card
 					const img = document.createElement('img');
 					img.src = data.image_url;
 					img.alt = data.name;
 					img.onload = () => {
-						preloadedImage = data;
-						preloadedImgEl = img;
+						cardImageBack!.innerHTML = '';
+						cardImageBack!.appendChild(img);
 					};
 					img.onerror = () => {
-						preloadedImage = null;
-						preloadedImgEl = null;
+						cardImageBack!.innerHTML = `<div class="loading">Image not found</div>`;
 					};
 				} catch (error) {
-					console.error('Failed to preload image:', error);
+					console.error('Failed to load back card:', error);
 				}
 			}
 		</script>
