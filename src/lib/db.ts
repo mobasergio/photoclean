@@ -1,9 +1,21 @@
 import { createClient } from '@libsql/client';
 
+// Get environment variables
+const TURSO_DATABASE_URL = import.meta.env.TURSO_DATABASE_URL || process.env.TURSO_DATABASE_URL;
+const TURSO_AUTH_TOKEN = import.meta.env.TURSO_AUTH_TOKEN || process.env.TURSO_AUTH_TOKEN;
+
+// Validate environment variables
+if (!TURSO_DATABASE_URL || !TURSO_AUTH_TOKEN) {
+  throw new Error(
+    'Missing Turso credentials. Please set TURSO_DATABASE_URL and TURSO_AUTH_TOKEN environment variables. ' +
+    'See TURSO_SETUP.md for instructions.'
+  );
+}
+
 // Initialize Turso client
 const db = createClient({
-  url: import.meta.env.TURSO_DATABASE_URL || process.env.TURSO_DATABASE_URL || '',
-  authToken: import.meta.env.TURSO_AUTH_TOKEN || process.env.TURSO_AUTH_TOKEN || '',
+  url: TURSO_DATABASE_URL,
+  authToken: TURSO_AUTH_TOKEN,
 });
 
 // Lazy initialization flag
@@ -13,26 +25,34 @@ let isInitialized = false;
 async function ensureInitialized() {
   if (isInitialized) return;
 
-  await db.execute(`
-    CREATE TABLE IF NOT EXISTS images (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      image_url TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
+  try {
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS images (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        image_url TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
 
-  await db.execute(`
-    CREATE TABLE IF NOT EXISTS swipe_results (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      image_id INTEGER NOT NULL,
-      is_correct BOOLEAN NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (image_id) REFERENCES images(id)
-    );
-  `);
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS swipe_results (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        image_id INTEGER NOT NULL,
+        is_correct BOOLEAN NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (image_id) REFERENCES images(id)
+      );
+    `);
 
-  isInitialized = true;
+    isInitialized = true;
+  } catch (error) {
+    console.error('Failed to initialize database:', error);
+    throw new Error(
+      'Database initialization failed. Please check your Turso credentials and database connection. ' +
+      `Error: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
 }
 
 export interface Image {

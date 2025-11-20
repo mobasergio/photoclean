@@ -1,8 +1,7 @@
-import { s as seedSampleData, g as getNextImage } from '../../chunks/db_BuFd1F5a.mjs';
+import { g as getNextImage } from '../../chunks/db_v9b71nIq.mjs';
 export { renderers } from '../../renderers.mjs';
 
 const GET = async () => {
-  await seedSampleData();
   const image = await getNextImage();
   if (!image) {
     return new Response(JSON.stringify({
