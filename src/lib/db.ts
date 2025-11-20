@@ -1,10 +1,4 @@
 import { createClient } from '@libsql/client';
-import { readdirSync } from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 // Initialize Turso client
 const db = createClient({
@@ -12,25 +6,34 @@ const db = createClient({
   authToken: import.meta.env.TURSO_AUTH_TOKEN || process.env.TURSO_AUTH_TOKEN || '',
 });
 
-// Initialize database schema
-await db.execute(`
-  CREATE TABLE IF NOT EXISTS images (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    image_url TEXT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
-`);
+// Lazy initialization flag
+let isInitialized = false;
 
-await db.execute(`
-  CREATE TABLE IF NOT EXISTS swipe_results (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    image_id INTEGER NOT NULL,
-    is_correct BOOLEAN NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (image_id) REFERENCES images(id)
-  );
-`);
+// Initialize database schema (called on first use)
+async function ensureInitialized() {
+  if (isInitialized) return;
+
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS images (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      image_url TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS swipe_results (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      image_id INTEGER NOT NULL,
+      is_correct BOOLEAN NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (image_id) REFERENCES images(id)
+    );
+  `);
+
+  isInitialized = true;
+}
 
 export interface Image {
   id: number;
@@ -47,6 +50,7 @@ export interface SwipeResult {
 }
 
 export async function getUnswipedImages(): Promise<Image[]> {
+  await ensureInitialized();
   const result = await db.execute(`
     SELECT i.* FROM images i
     LEFT JOIN swipe_results sr ON i.id = sr.image_id
@@ -57,6 +61,7 @@ export async function getUnswipedImages(): Promise<Image[]> {
 }
 
 export async function getNextImage(): Promise<Image | undefined> {
+  await ensureInitialized();
   const result = await db.execute(`
     SELECT i.* FROM images i
     LEFT JOIN swipe_results sr ON i.id = sr.image_id
@@ -68,6 +73,7 @@ export async function getNextImage(): Promise<Image | undefined> {
 }
 
 export async function saveSwipeResult(imageId: number, isCorrect: boolean): Promise<SwipeResult> {
+  await ensureInitialized();
   const result = await db.execute({
     sql: `INSERT INTO swipe_results (image_id, is_correct) VALUES (?, ?)`,
     args: [imageId, isCorrect ? 1 : 0]
@@ -82,6 +88,7 @@ export async function saveSwipeResult(imageId: number, isCorrect: boolean): Prom
 }
 
 export async function addImage(name: string, imageUrl: string): Promise<Image> {
+  await ensureInitialized();
   const result = await db.execute({
     sql: `INSERT INTO images (name, image_url) VALUES (?, ?)`,
     args: [name, imageUrl]
@@ -96,6 +103,7 @@ export async function addImage(name: string, imageUrl: string): Promise<Image> {
 }
 
 export async function getAllResults(): Promise<(SwipeResult & { image_name: string; image_url: string })[]> {
+  await ensureInitialized();
   const result = await db.execute(`
     SELECT sr.*, i.name as image_name, i.image_url
     FROM swipe_results sr
@@ -106,6 +114,7 @@ export async function getAllResults(): Promise<(SwipeResult & { image_name: stri
 }
 
 export async function getFilteredResults(isCorrect: boolean): Promise<(SwipeResult & { image_name: string; image_url: string })[]> {
+  await ensureInitialized();
   const result = await db.execute({
     sql: `
       SELECT sr.*, i.name as image_name, i.image_url
@@ -120,6 +129,7 @@ export async function getFilteredResults(isCorrect: boolean): Promise<(SwipeResu
 }
 
 export async function updateSwipeResult(id: number, isCorrect: boolean): Promise<boolean> {
+  await ensureInitialized();
   const result = await db.execute({
     sql: 'UPDATE swipe_results SET is_correct = ? WHERE id = ?',
     args: [isCorrect ? 1 : 0, id]
@@ -128,6 +138,7 @@ export async function updateSwipeResult(id: number, isCorrect: boolean): Promise
 }
 
 export async function deleteSwipeResult(id: number): Promise<boolean> {
+  await ensureInitialized();
   const result = await db.execute({
     sql: 'DELETE FROM swipe_results WHERE id = ?',
     args: [id]
@@ -136,6 +147,7 @@ export async function deleteSwipeResult(id: number): Promise<boolean> {
 }
 
 export async function updateImageUrl(imageId: number, newUrl: string): Promise<boolean> {
+  await ensureInitialized();
   const result = await db.execute({
     sql: 'UPDATE images SET image_url = ? WHERE id = ?',
     args: [newUrl, imageId]
@@ -144,6 +156,7 @@ export async function updateImageUrl(imageId: number, newUrl: string): Promise<b
 }
 
 export async function getStats(): Promise<{ total: number; correct: number; incorrect: number }> {
+  await ensureInitialized();
   const result = await db.execute(`
     SELECT
       COUNT(*) as total,
@@ -161,6 +174,7 @@ export async function getStats(): Promise<{ total: number; correct: number; inco
 }
 
 export async function undoLastSwipe(): Promise<{ image: Image; wasCorrect: boolean } | null> {
+  await ensureInitialized();
   const lastSwipeResult = await db.execute(`
     SELECT sr.id, sr.image_id, sr.is_correct, i.name, i.image_url, i.created_at
     FROM swipe_results sr
@@ -192,32 +206,12 @@ export async function undoLastSwipe(): Promise<{ image: Image; wasCorrect: boole
 }
 
 export async function hasSwipesToUndo(): Promise<boolean> {
+  await ensureInitialized();
   const result = await db.execute('SELECT COUNT(*) as count FROM swipe_results');
   const row = result.rows[0] as any;
   return Number(row.count) > 0;
 }
 
-export async function seedSampleData(): Promise<void> {
-  const countResult = await db.execute('SELECT COUNT(*) as count FROM images');
-  const count = (countResult.rows[0] as any).count;
 
-  if (Number(count) === 0) {
-    // Read all images from src/images directory
-    const imagesDir = join(__dirname, '../images');
-    const imageFiles = readdirSync(imagesDir).filter(file => file.endsWith('.jpg'));
-
-    for (const file of imageFiles) {
-      // Extract a readable name from the filename (remove extension and replace underscores with spaces)
-      const name = file.replace('.jpg', '').replace(/_/g, ' ');
-      // Use relative path from the public directory
-      const url = `/images/${file}`;
-
-      await db.execute({
-        sql: 'INSERT INTO images (name, image_url) VALUES (?, ?)',
-        args: [name, url]
-      });
-    }
-  }
-}
 
 export default db;

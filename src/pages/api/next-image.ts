@@ -1,10 +1,7 @@
 import type { APIRoute } from 'astro';
-import { getNextImage, seedSampleData } from '../../lib/db';
+import { getNextImage } from '../../lib/db';
 
 export const GET: APIRoute = async () => {
-  // Seed sample data on first request
-  await seedSampleData();
-
   const image = await getNextImage();
 
   if (!image) {
