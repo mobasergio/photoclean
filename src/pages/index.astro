@@ -147,6 +147,7 @@
 				cursor: grab;
 				transition: transform 0.1s ease;
 				user-select: none;
+				touch-action: none;
 			}
 
 			.card:active {
@@ -308,7 +309,7 @@
 
 			// Touch events
 			card?.addEventListener('touchstart', handleTouchStart, { passive: true });
-			card?.addEventListener('touchmove', handleTouchMove, { passive: true });
+			card?.addEventListener('touchmove', handleTouchMove, { passive: false });
 			card?.addEventListener('touchend', handleTouchEnd);
 
 			// Mouse events
@@ -330,6 +331,7 @@
 
 			function handleTouchMove(e: TouchEvent) {
 				if (!isDragging) return;
+				e.preventDefault();
 				currentX = e.touches[0].clientX - startX;
 				updateCardPosition();
 			}
