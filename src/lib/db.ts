@@ -126,6 +126,33 @@ export function getStats(): { total: number; correct: number; incorrect: number 
   };
 }
 
+// Undo last swipe - returns the image that was restored
+export function undoLastSwipe(): Image | null {
+  // Get the last swipe result
+  const lastSwipe = db.prepare(`
+    SELECT sr.id, sr.image_id, sr.is_correct, i.name, i.image_url, i.created_at
+    FROM swipe_results sr
+    JOIN images i ON sr.image_id = i.id
+    ORDER BY sr.id DESC
+    LIMIT 1
+  `).get() as { id: number; image_id: number; is_correct: number; name: string; image_url: string; created_at: string } | undefined;
+
+  if (!lastSwipe) {
+    return null;
+  }
+
+  // Delete the swipe result
+  db.prepare('DELETE FROM swipe_results WHERE id = ?').run(lastSwipe.id);
+
+  // Return the image that was restored
+  return {
+    id: lastSwipe.image_id,
+    name: lastSwipe.name,
+    image_url: lastSwipe.image_url,
+    created_at: lastSwipe.created_at
+  };
+}
+
 // Seed sample data if no images exist
 export function seedSampleData(): void {
   const count = db.prepare('SELECT COUNT(*) as count FROM images').get() as { count: number };

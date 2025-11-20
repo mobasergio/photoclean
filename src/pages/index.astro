@@ -49,6 +49,9 @@
 				<button class="btn incorrect" id="btn-incorrect" aria-label="Mark as incorrect">
 					✗
 				</button>
+				<button class="btn undo" id="btn-undo" aria-label="Undo last swipe" disabled>
+					↩
+				</button>
 				<button class="btn correct" id="btn-correct" aria-label="Mark as correct">
 					✓
 				</button>
@@ -242,6 +245,24 @@
 				color: white;
 			}
 
+			.btn.undo {
+				background: #868e96;
+				color: white;
+				width: 50px;
+				height: 50px;
+				font-size: 1.4rem;
+			}
+
+			.btn.undo:disabled {
+				opacity: 0.4;
+				cursor: not-allowed;
+				transform: none;
+			}
+
+			.btn.undo:disabled:hover {
+				transform: none;
+			}
+
 			.done-message {
 				text-align: center;
 				color: white;
@@ -286,6 +307,7 @@
 			let currentX = 0;
 			let correctCount = 0;
 			let incorrectCount = 0;
+			let lastSwipeWasCorrect: boolean | null = null;
 
 			// Elements
 			const card = document.getElementById('card');
@@ -297,6 +319,7 @@
 			const indicatorRight = document.getElementById('indicator-right');
 			const btnCorrect = document.getElementById('btn-correct');
 			const btnIncorrect = document.getElementById('btn-incorrect');
+			const btnUndo = document.getElementById('btn-undo') as HTMLButtonElement;
 			const correctCountEl = document.getElementById('correct-count');
 			const incorrectCountEl = document.getElementById('incorrect-count');
 
@@ -306,6 +329,7 @@
 			// Button handlers
 			btnCorrect?.addEventListener('click', () => swipe(true));
 			btnIncorrect?.addEventListener('click', () => swipe(false));
+			btnUndo?.addEventListener('click', undo);
 
 			// Touch events
 			card?.addEventListener('touchstart', handleTouchStart, { passive: true });
@@ -417,6 +441,10 @@
 					incorrectCountEl!.textContent = incorrectCount.toString();
 				}
 
+				// Track last swipe for undo
+				lastSwipeWasCorrect = isCorrect;
+				btnUndo.disabled = false;
+
 				// Save to database
 				try {
 					await fetch('/api/swipe', {
@@ -445,6 +473,51 @@
 						loadNextImage();
 					}, 50);
 				}, 300);
+			}
+
+			async function undo() {
+				try {
+					const response = await fetch('/api/undo', { method: 'POST' });
+					const data = await response.json();
+
+					if (!data.success) {
+						return;
+					}
+
+					// Update counts
+					if (lastSwipeWasCorrect === true) {
+						correctCount = Math.max(0, correctCount - 1);
+						correctCountEl!.textContent = correctCount.toString();
+					} else if (lastSwipeWasCorrect === false) {
+						incorrectCount = Math.max(0, incorrectCount - 1);
+						incorrectCountEl!.textContent = incorrectCount.toString();
+					}
+
+					// Show the restored image
+					currentImage = data.image;
+					cardName!.textContent = data.image.name;
+
+					// Load image
+					const img = document.createElement('img');
+					img.src = data.image.image_url;
+					img.alt = data.image.name;
+					img.onload = () => {
+						cardImage!.innerHTML = '';
+						cardImage!.appendChild(img);
+					};
+
+					// Show card container if it was hidden
+					cardContainer!.style.display = '';
+					doneMessage!.style.display = 'none';
+					(document.querySelector('.buttons') as HTMLElement).style.display = '';
+
+					// Disable undo button (only one undo allowed)
+					btnUndo.disabled = true;
+					lastSwipeWasCorrect = null;
+
+				} catch (error) {
+					console.error('Failed to undo:', error);
+				}
 			}
 
 			async function loadNextImage() {
