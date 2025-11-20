@@ -15,7 +15,7 @@ export const PUT: APIRoute = async ({ request }) => {
       });
     }
 
-    const success = updateSwipeResult(id, isCorrect);
+    const success = await updateSwipeResult(id, isCorrect);
 
     if (!success) {
       return new Response(JSON.stringify({ error: 'Result not found' }), {
@@ -50,7 +50,7 @@ export const DELETE: APIRoute = async ({ request }) => {
       });
     }
 
-    const success = deleteSwipeResult(id);
+    const success = await deleteSwipeResult(id);
 
     if (!success) {
       return new Response(JSON.stringify({ error: 'Result not found' }), {

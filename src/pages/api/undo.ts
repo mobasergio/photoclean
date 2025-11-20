@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro';
 import { undoLastSwipe, hasSwipesToUndo } from '../../lib/db';
 
 export const POST: APIRoute = async () => {
-  const result = undoLastSwipe();
+  const result = await undoLastSwipe();
 
   if (!result) {
     return new Response(JSON.stringify({
@@ -18,9 +18,10 @@ export const POST: APIRoute = async () => {
     success: true,
     image: result.image,
     wasCorrect: result.wasCorrect,
-    hasMore: hasSwipesToUndo()
+    hasMore: await hasSwipesToUndo()
   }), {
     status: 200,
     headers: { 'Content-Type': 'application/json' }
   });
 };
+

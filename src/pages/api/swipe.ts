@@ -15,7 +15,7 @@ export const POST: APIRoute = async ({ request }) => {
       });
     }
 
-    const result = saveSwipeResult(imageId, isCorrect);
+    const result = await saveSwipeResult(imageId, isCorrect);
 
     return new Response(JSON.stringify(result), {
       status: 200,

@@ -3,9 +3,9 @@ import { getNextImage, seedSampleData } from '../../lib/db';
 
 export const GET: APIRoute = async () => {
   // Seed sample data on first request
-  seedSampleData();
+  await seedSampleData();
 
-  const image = getNextImage();
+  const image = await getNextImage();
 
   if (!image) {
     return new Response(JSON.stringify({
@@ -22,3 +22,4 @@ export const GET: APIRoute = async () => {
     headers: { 'Content-Type': 'application/json' }
   });
 };
+

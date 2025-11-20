@@ -10,10 +10,7 @@
   },
   "dependencies": {
     "@astrojs/node": "^9.5.1",
-    "astro": "^5.15.9",
-    "better-sqlite3": "^12.4.1"
-  },
-  "devDependencies": {
-    "@types/better-sqlite3": "^7.6.13"
+    "@libsql/client": "^0.14.0",
+    "astro": "^5.15.9"
   }
 }
